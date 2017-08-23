@@ -336,5 +336,6 @@ bundle:install -s mvn:com.owt3.demo/bundle-demo/1.0.0-SNAPSHOT
 
 and Voila:
 
-![]](img\runServices.png)
+![](img/runServices.png)
+
 
