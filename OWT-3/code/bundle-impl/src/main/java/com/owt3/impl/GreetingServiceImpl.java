@@ -7,7 +7,7 @@ import com.owt3.api.GreetingService;
 import com.owt3.lib.DemoUtil;
 
 @Singleton
-@OsgiServiceProvider(classes = {GreetingService.class})
+@OsgiServiceProvider(classes = { GreetingService.class })
 public class GreetingServiceImpl implements GreetingService {
     public String sayHello(String name) {
         DemoUtil util = new DemoUtil();

@@ -4,30 +4,24 @@ This tutorial will examine the available ways of registering OSGi services (e.g.
 More specifically, it will:
 1. Create two bundles.
 2. Create two services, one in each bundle.
-3. Wire the services together so that communicationis achieved.
+3. Wire the services together so that communications  achieved.
 
 
+# Initialization
 
-# TODO explain new maven project also?
+For start create parent project named `bundle-parent` as a plain maven project with default directory structure.
 
-target:
-1 bundle pou 8a einai to specification tou service
-1 bundle pou 8a einai to  implementation tou service
-1 bundle pou 8a einai to util.. 
-
-
-Fitanxoume ena maven project me to default directory stracture 
-
-
-- ftiaxnoume ton skeleto:
- - 1 we create the parent project me 
-
-
+Edit pom.xml:
+```
 	<groupId>com.owt3.demo</groupId>
 	<artifactId>parent</artifactId>
 	<version>1.0.0-SNAPSHOT</version>
 
-We create a sample utility class with a simple function witch capitalises a word:
+```
+
+Then create parent project named `bundle-lib` ,likewise bundle-parent, as a plain maven project with default directory structure.
+
+with a sample utility class with a simple function witch capitalizes a word
 at: OWT-3\code\bundle-lib\src\main\java\com\owt3\lib\
 
 package com.owt3.lib;
@@ -40,23 +34,23 @@ public class DemoUtil {
 }
 
 
-If we build this module the genererated jar wont be "OSGi-ready". What it does need is A Manifest ﬁle.
+If we build this module the generated jar wont be "OSGi-ready". What it does need is A Manifest ﬁle.
  
 As we saw in [OWT2 Bundle Manifests](https://github.com/dimipapadeas/openwis-tutorials/tree/develop/OWT-2#bundle-manifests) 
 
 To auto-generate the  we could use 
  
 
-to create a manifest file automaticaly we use:
+to create a manifest file automatically we use:
 
 > maven-bundle-plugin
 
 The standard way to create OSGI bundles in Maven, all Maven modules need it.
 The `maven-bundle-plugin` is highly conﬁgurable allowing developers to auto-generate very complex manifest files.
-This plugin actually wraps the [BND tool](http://bndtools.org/) a class analyisis tool which analyises the generated jar and creates the manifest file.
+This plugin actually wraps the [BND tool](http://bndtools.org/) a class analysis tool which analyses the generated jar and creates the manifest file.
 
 
-To enable the maven-bundle-plugin, edit the module's pom.xml, set packaging as budndle and add the plugin as follows:
+To enable the maven-bundle-plugin, edit the module's pom.xml, set packaging as bundle and add the plugin as follows:
 ```
 
 <packaging>bundle</packaging>
@@ -107,7 +101,7 @@ new child project..
 
 same as lib*
 
-add depedency
+add dependency
 bundle-api
 
 We add the sample interface code:
@@ -125,15 +119,12 @@ public interface GreetingService {
 ```
 
 
- install the bunlde:
+ Install the bundle:
 
 
 bundle:install -s mvn:com.owt3.demo/bundle-api/1.0.0-SNAPSHOT
 
 ![](img/deployBundle2.png)
-
-
-# tODO ASK na balw DTO ?
 
 
 
@@ -158,8 +149,6 @@ public class GreetingServiceImpl implements GreetingService {
 }
 
 ```
-// pws 8a katalabei to osgi pws auto einai ena service?
-
 But not a OSGI Service.
 
 
@@ -179,7 +168,7 @@ In this tutorial we will use [Blueprint](link), its common its popular its not c
 
 
 
-Instead of manually tracking services with code, in Bluprint services are simply deﬁned in an XML ﬁle:
+Instead of manually tracking services with code, in Blueprint services are simply defined in an XML ﬁle:
 
  
 An example of blueprint.xml:
@@ -195,10 +184,10 @@ An example of blueprint.xml:
 
 ```
 
-In most cases there are more than one services. Thus maintaining the xml may be painfull. Bluprint though can also be extended and be fully-automated via Maven + Annotations.
+In most cases there are more than one services. Thus maintaining the xml may be inefficient. Blueprint though can also be extended and be fully-automated via Maven + Annotations.
 
 
-To set up Bluprint maven plug-in. Modify the impl project pom xml:
+To set up Blueprint maven plug-in. Modify the impl project pom xml:
 
 - Add the plug-in:
 
@@ -224,7 +213,7 @@ To set up Bluprint maven plug-in. Modify the impl project pom xml:
 		</plugin>
 ```
 
- - Add the depedencies:
+ - Add the dependencies:
 
 ```
         <dependency>
@@ -271,13 +260,12 @@ to verify the setup :
 
 {}\target\generated-sources\blueprint\OSGI-INF\blueprint\
 
-There must be an auto-genereated autowire.xml:
+There must be an auto-generated autowire.xml:
 
 ![](img/autowireXML.png)
 
 
-#gia na douleuei me ta anotations prepei na pros8esoume ston karaf
-> to work with services we need to install  these new dependencies olny for the first time:
+> to work with services we need to install these new dependencies olny for the first time:
 -  pax-cdi (integrated karaf feture)
 -  javax.inject (wrap) 
 
@@ -313,11 +301,6 @@ Then install the Osgi bundle:
 
 
 
-
-
-
-# todo verify...
-
 we create a new maven project the "demo":
 
 
@@ -335,77 +318,23 @@ import com.owt3.api.GreetingService;
 @Singleton
 public class BundleDemo {
 
-// call the service ...
- @Inject
  @OsgiService
+ @Inject
 private GreetingService greetingService;
 
     @PostConstruct
     public void init() {
-        System.out.println("Bundle is calling GreetingService");
-        greetingService.sayHello("dimi");
+        String user = "auser"; 
+        System.out.println("Demo Bundle is calling GreetingService:");
+        System.out.println(" "+greetingService.sayHello(user));
     }
 }
 ```
 
-
+ install the bundle :
 bundle:install -s mvn:com.owt3.demo/bundle-demo/1.0.0-SNAPSHOT
 
+and Voila:
 
+![]](img\runServices.png)
 
-
-
-
-##notes :########################################################################### delete meta
-
-// run a main class ?
-
-// call a service via an other service
-
-
-
-package com.devdays102.impl;
-
-import com.devdays102.api.GreeterService;
- import com.devdays102.lib.LibUtil;
-
-public class GreeterServiceImpl implements GreeterService { 
-	   public String greet(String name) {        
-		   LibUtil libUtil = new LibUtil();
-
-        return "Hello " + libUtil.capitaliser(name);
-		    } }
-
-
-@Singleton
-@Transactional
-@OsgiServiceProvider(classes = {GreetingService.class})
-
-#after clean
-bundle:install -s mvn:com.owt3.demo/bundle-lib/1.0.0-SNAPSHOT
-bundle:install -s mvn:com.owt3.demo/bundle-api/1.0.0-SNAPSHOT
-
-
-feature:install pax-cdi 
-install -s wrap:mvn:javax.inject/javax.inject/1
-
- bundle:install -s mvn:com.owt3.demo/bundle-impl/1.0.0-SNAPSHOT
-
-list 
-services 72
-
-
-
-
-se autob tn karaf:
-D:\Servers\apache-karaf-4.0.7\bin
-
-C:\Users\PAPADEAS\Desktop\Dimi Notes\OpenWIS\Pilots tutorials\openwis-tutorials\OWT-3\code\bundle-parent
-devdays developping apps v1 0:53 
-
-#gia na douleuei me ta anotations prepei na pros8esoume ston karaf
--to pax-cdi (feture)
--to javax.inject (wrap kai prepei na ginei started) 
-
- feature:install pax-cdi 
- install -s wrap:mvn:javax.inject/javax.inject/1

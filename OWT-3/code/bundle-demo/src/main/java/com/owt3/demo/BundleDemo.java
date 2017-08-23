@@ -1,4 +1,3 @@
-
 package com.owt3.demo;
 
 import javax.inject.Inject;
@@ -18,8 +17,9 @@ private GreetingService greetingService;
 
     @PostConstruct
     public void init() {
+        String user = "auser"; 
         System.out.println("Demo Bundle is calling GreetingService:");
-        System.out.println(" "+greetingService.sayHello("dimi") );
+        System.out.println(" "+greetingService.sayHello(user));
     }
 }
 
