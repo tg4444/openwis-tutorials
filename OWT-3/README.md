@@ -1,247 +1,188 @@
-## OWT-3: Creating a service in Karaf
-This tutorial will examine the available ways of registering OSGi services (e.g. xml, annotation, etc.) and will provide the first hands-on code example of an OSGi service.
+# OWT-3: Creating OSGi Services in Karaf
+This tutorial will examine the available ways of registering OSGi services (e.g. xml, annotation, etc.) and will provide a hands-on code example of OSGi services.
 
 More specifically, it will:
 1. Create two bundles.
 2. Create two services, one in each bundle.
 3. Wire the services together so that communications  achieved.
 
+## 1. General Notes
 
-# Initialization
+> The code for this tutorial is available in the _code_ directory. It is recommend to have it checked-out locally and refer to it while going through the tutorial.
 
-For start create parent project named `bundle-parent` as a plain maven project with default directory structure.
+> All the maven modules detailed below have the standard maven directory structure.
 
-Edit pom.xml:
+## 2. Maven module: bundle-parent
+
+The `bundle-parent` maven module serves as the _parent_ maven project for the build. It is responsible to build all of its _children_ modules, and may optionally provide dependency and plugin management. In our code it contains a single file, the maven build descriptor, `pom.xml`. The following are the points of interest in our pom.xml file:
+
+> #### Artifact Information
+> This information is used to uniquely identify the artifact.
+> 
+> ```xml
+> <groupId>com.owt3.demo</groupId>
+> <artifactId>parent</artifactId>
+> <version>1.0.0-SNAPSHOT</version>
+> <packaging>pom</packaging>
+> ```
+
+> #### Children Modules
+> These _children_ modules will be built by the parent. Each child module must contain a reference to the parent in its own pom.xml file.
+>
+> ```xml
+> <modules>
+>   <module>../bundle-lib</module>
+>   <module>../bundle-api</module>
+>   ...
+> </modules>
+> ```
+
+> #### Build Properties
+> These properties serve as variables and may be used by both the parent and children modules. They are employed in order to centrally manage information.
+>
+> ```xml
+> <properties>
+>   <maven-bundle-plugin.version>3.2.0</maven-bundle-plugin.version>
+>   <blueprint-maven-plugin.version>1.5.0</blueprint-maven-plugin.version>
+>   ...
+> </properties>
+> ```
+
+> #### Plugin Management
+> This section defines plugins that may be used by both the parent and children modules.
+>
+> ```xml
+> <pluginManagement>
+>   <plugins>
+>     <plugin>
+>     ...
+>     </plugin>
+>   </plugins>
+> </pluginManagement>
+> ```
+
+## 3. Maven module: bundle-lib
+This is a helper bundle which contains a single source file _(DemoUtil.java)_ with a simple method that capitalizes a given string, as seen in the snippet below:
+
+```java
+  public String upperCaseIt(String text) {
+    return text.toUpperCase();
+  }
 ```
-	<groupId>com.owt3.demo</groupId>
-	<artifactId>parent</artifactId>
-	<version>1.0.0-SNAPSHOT</version>
 
-```
+In order to build this artifact and make it "OSGi-ready", we need is a _Manifest_ ﬁle, as explained [here](https://github.com/dimipapadeas/openwis-tutorials/tree/develop/OWT-2#bundle-manifests) 
 
-Then create parent project named `bundle-lib` ,likewise bundle-parent, as a plain maven project with default directory structure.
+To create a manifest file automatically we can use the `maven-bundle-plugin`. It is a highly conﬁgurable plugin, allowing developers to auto-generate very complex manifest files. In essense, it is a wrapper of the [BND tool](http://bndtools.org/), a class analysis tool which analyses the generated jar and creates the manifest file.
 
-with a sample utility class with a simple function witch capitalizes a word
-at: OWT-3\code\bundle-lib\src\main\java\com\owt3\lib\
-
-package com.owt3.lib;
-
-public class DemoUtil {
-
-    public String UpperCaseIt(String text) {
-        return text.toUpperCase();
-    }
-}
+To achieve all of the above we have to do the following in the module's pom.xml file:
 
 
-If we build this module the generated jar wont be "OSGi-ready". What it does need is A Manifest ﬁle.
- 
-As we saw in [OWT2 Bundle Manifests](https://github.com/dimipapadeas/openwis-tutorials/tree/develop/OWT-2#bundle-manifests) 
+> #### Package as Bundle
+> This xml line makes maven understand that it will be generating an OSGi bundle.
+>
+> ```xml
+> <packaging>bundle</packaging>
+> ```
 
-To auto-generate the  we could use 
- 
+> #### Generate Manifest
+> The maven-bundle-plugin declaration that will generate the manifest file.
+>
+> ```xml
+> <plugin>
+>   <groupId>org.apache.felix</groupId>
+>   <artifactId>maven-bundle-plugin</artifactId>
+>   <version>${maven-bundle-plugin.version}</version>
+>   <extensions>true</extensions>
+> </plugin>
+> ```
 
-to create a manifest file automatically we use:
+Once the module is built successfully, the generated manifest can be found at: _code/bundle-lib/target/classes/META-INF/MANIFEST.MF_
 
-> maven-bundle-plugin
+The generated manifest for bundle-lib should look like this:
 
-The standard way to create OSGI bundles in Maven, all Maven modules need it.
-The `maven-bundle-plugin` is highly conﬁgurable allowing developers to auto-generate very complex manifest files.
-This plugin actually wraps the [BND tool](http://bndtools.org/) a class analysis tool which analyses the generated jar and creates the manifest file.
-
-
-To enable the maven-bundle-plugin, edit the module's pom.xml, set packaging as bundle and add the plugin as follows:
-```
-
-<packaging>bundle</packaging>
-
-<build>
-	<plugins>
-		<plugin>
-			<groupId>org.apache.felix</groupId>
-			<artifactId>maven-bundle-plugin</artifactId>
-			<version>${maven-bundle-plugin.version}</version>
-			<extensions>true</extensions>
-		</plugin>
-	</plugins>
-</build> 
-
-```
-Build via parent module and verify manifest creation at:
-
-    {workspace path}/OWT-3/code/bundle-lib/target/classes/META-INF/MANIFEST.MF
-
-
-The generated Manifest for the utility class must look like this:
 ![](img/manifest.png)
 
+## 4. Maven module: bundle-api
+This bundle contains the Service API, where the service specification resides. In essense, it contains the interface that some other bundle will need to implement, as can be seen in the snippet below:
 
 
-### Deploy the bundle 'bundle-lib'
-
-
-The command to install and start the bundle is represented as:
- 
- `bundle:install -s mvn:GROUP ID /ARTIFACT ID / VERSION`
-
-
-In this example execute:
-
-bundle:install -s mvn:com.owt3.demo/bundle-lib/1.0.0-SNAPSHOT
-
-
-![](img/deployBundle.png)
-
-
-## Service API 
- As next step create the Service api where the specification of the service will be.
-
-new maven project..
-new child project..
-
-same as lib*
-
-add dependency
-bundle-api
-
-We add the sample interface code:
-
-```
-
-package com.owt3.api;
-
-import java.util.List;
-
+```java
 public interface GreetingService {
     String greet(String name);
 }
-
 ```
-
-
- Install the bundle:
-
-
-bundle:install -s mvn:com.owt3.demo/bundle-api/1.0.0-SNAPSHOT
-
-![](img/deployBundle2.png)
+Its `pom.xml` file is very similar to the one of the `bundle-lib` module, and it simply generates an OSGi bundle with a manifest.
 
 
 
-## Service implementation
+## 5. Maven module: bundle-impl
+This bundle contains the implementation of the interface defined in `bundle-api`. When built, it will create the actual OSGi that will be deployed on Karaf.
 
-bundle-impl
-
-Likewise create an new maven project edit pom.xml to add maven-bundle-plugin and bundle as packaging.
-
-An implementation of a service would look like :
-```
-package com.owt3.impl;
-
-import com.owt3.api.GreetingService;
-import com.owt3.lib.DemoUtil;
-
-public class GreetingServiceImpl implements GreetingService {
-    public String sayHello(String name) {
-        DemoUtil util = new DemoUtil();
-        return "Hello " + util.upperCaseIt(name);
-    }
-}
-
-```
-But not a OSGI Service.
-
-
-## OSGI Services
-
-As we saw in [OWT2 OSGi Services](https://github.com/dimipapadeas/openwis-tutorials/tree/develop/OWT-2#osgi-services) 
-
-
-There are two ways to declare a service:
+As discussed in [OWT2 OSGi Services](https://github.com/dimipapadeas/openwis-tutorials/tree/develop/OWT-2#osgi-services), there are two ways to declare a service:
 
 - Programmatically via BundleActivator
 - Via frameworks/tools (there are many available..[link](link)
 
-In this tutorial we will use [Blueprint](link), its common its popular its not complex.
+In this tutorial we will use [Blueprint](link), because of its popularity and lack of complexity.
 
-### Adding Blueprint to our service
+### Adding Blueprint
+Instead of manually tracking services with code, in Blueprint services are simply defined in an XML ﬁle such as the one below:
 
-
-
-Instead of manually tracking services with code, in Blueprint services are simply defined in an XML ﬁle:
-
- 
-An example of blueprint.xml:
-
-```
+```xml
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <blueprint xmlns="http://www.osgi.org/xmlns/blueprint/v1.0.0">
-    <bean id="AServiceImpl" class="com.sample.impl.AServiceImpl"/>
-
-    <service id="AService" interface="com.sample.api.AServiceImpl"
-	             ref="AServiceImpl"/>
- </blueprint>
-
+  <bean id="AServiceImpl" class="com.sample.impl.AServiceImpl"/>
+  <service id="AService" interface="com.sample.api.AServiceImpl" ref="AServiceImpl"/>
+</blueprint>
 ```
 
-In most cases there are more than one services. Thus maintaining the xml may be inefficient. Blueprint though can also be extended and be fully-automated via Maven + Annotations.
+This may appear simple enough, but in most real-word applications there are many services, making maintanance of huge blueprint.xml files inefficient. Luckily, Blueprint xml generation can also be fully-automated via use of a maven plugin and annotations.
 
+As a result, in the module's pom.xml file we must add the following:
 
-To set up Blueprint maven plug-in. Modify the impl project pom xml:
+> #### Maven Blueprint Plugin
+> 
+> ```xml
+> <plugin>
+>   <groupId>org.apache.aries.blueprint</groupId>
+>   <artifactId>blueprint-maven-plugin</artifactId>
+>   <version>${blueprint-maven-plugin.version}</version>
+>   <configuration>
+>     <scanPaths>
+> 	    <scanPath>com.owt3.impl</scanPath>
+> 	  </scanPaths>
+>   </configuration>
+>   <executions>
+>     <execution>
+> 	    <goals>
+> 	      <goal>blueprint-generate</goal>
+> 	    </goals>
+> 	    <phase>process-classes</phase>
+> 	  </execution>
+>   </executions>
+> </plugin>
+> ```
 
-- Add the plug-in:
+> #### Blueprint Plugin Dependencies
+> 
+> ```xml
+> <dependency>
+>   <groupId>javax.inject</groupId>
+>   <artifactId>javax.inject</artifactId>
+>   <version>${javax.inject.version}</version>
+> </dependency>
+> <dependency>
+>   <groupId>org.ops4j.pax.cdi</groupId>
+>   <artifactId>pax-cdi-api</artifactId>
+>   <version>${pax.cdi.version}</version>
+> </dependency>
+> ```
 
-```
- 	 <plugin>
-			<groupId>org.apache.aries.blueprint</groupId>
-			<artifactId>blueprint-maven-plugin</artifactId>
-			<version>${blueprint-maven-plugin.version}</version>
-			<configuration>
-<!-- Important: The blueprint-maven-plugin needs to know which packages to scan-->
-				<scanPaths>
-					<scanPath>com.owt3.impl</scanPath>
-				</scanPaths>
-			</configuration>
-			<executions>
-				<execution>
-					<goals>
-						<goal>blueprint-generate</goal>
-					</goals>
-					<phase>process-classes</phase>
-				</execution>
-			</executions>
-		</plugin>
-```
+The Blueprint plugin will scan the classes of _com.owt3.impl_ path for specific annotations. These annotations will then instruct it on how to generate the xml file required. Also, as can be seen in the above snippets, some properties defined in the `bundle-parent` project are now utilized, such as `${javax.inject.version}` and `${pax.cdi.version}`.
 
- - Add the dependencies:
+The aforementioned annotation that assists in the Blueprint xml generation _(@OsgiServiceProvider)_ can be seen below:
 
-```
-        <dependency>
-            <groupId>javax.inject</groupId>
-            <artifactId>javax.inject</artifactId>
-            <version>${javax.inject.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.ops4j.pax.cdi</groupId>
-            <artifactId>pax-cdi-api</artifactId>
-            <version>${pax.cdi.version}</version>
-        </dependency>
-```
-
-- Edit the parent pom xml, at <properties> add:
-
-```
- <pax.cdi.version>0.12.0</pax.cdi.version>
- <blueprint-maven-plugin.version>1.5.0</blueprint-maven-plugin.version>
- <javax.inject.version>1</javax.inject.version>
-
- 
-```
-
-
-So the final definition of GreetingServiceImpl must be :
-
-```
+```java
 import org.ops4j.pax.cdi.api.OsgiServiceProvider;
 import javax.inject.Singleton;
 
@@ -250,91 +191,99 @@ import javax.inject.Singleton;
 public class GreetingServiceImpl implements GreetingService {
 
 //...
-
 ```
 
-
-Build ...
-
-to verify the setup :
-
-{}\target\generated-sources\blueprint\OSGI-INF\blueprint\
-
-There must be an auto-generated autowire.xml:
+Once the module is successfully built, the Blueprint xml file can be found here: _code/bundle-impl/target/generated-sources/blueprint/OSGI-INF/blueprint/autowire.xml_
 
 ![](img/autowireXML.png)
 
+## 6. Maven module: bundle-demo
+This bundle is the one that will actually demonstrate the setup we created earlier. It creates a Singleton bean that - once deployed - will call the _GreetingService_ implementation defined above, which will in turn use the `bundle-lib` module to capitalize the provided string input.
 
-> to work with services we need to install these new dependencies olny for the first time:
--  pax-cdi (integrated karaf feture)
--  javax.inject (wrap) 
-
-
- # a standalone cmd singleton?
-package com.owt2.demo;
-
-import javax.annotation.PostConstruct;
-import javax.inject.Singleton;
-
-@Singleton
-public class BundleExecution {
-    @PostConstruct
-    public void init() {
-        System.out.println("A new Bundle has started!");
-    }
-}
+In terms of the `pom.xml` configuration, it is similar to `bundle-impl` and it will auto-generate the required Blueprint xml file. In terms of code, the following are the main points of interest in `BundleDemo.java`:
 
 
+> #### Singleton Declaration
+> This will create a Singleton (single-instace) bean, and deploy it on Karaf.
+> 
+> ```java
+> @Singleton
+> public class BundleDemo {
+> ```
 
+> #### OSGi Service Injection
+> This will inject the implementation of the GreetingService into the demo class.
+> 
+> ```java
+> @OsgiService
+> @Inject
+> private GreetingService greetingService;
+> ```
 
+> #### Code Execution
+> The code within _init()_ will be executed after the service bean has beed successfully deployed.
+> 
+> ```java
+> @PostConstruct
+> public void init() {
+>   ...   
+> }
+> ```
+
+## 7. Installing the Bundles on Karaf
+Each of the bundles mentioned above - with the exception of bundle-parent - must be installed on Karaf.
+
+In general, the command to install a bundle on Karaf is the following:
+```
+bundle:install -s mvn:<GROUP_ID>/<ARTIFACT_ID>/<VERSION>
+```
+
+The GROUP_ID, ARTIFACT_ID, and VERSION are the ones specified in the `pom.xml` file of each respective module. What Karaf actually does is simply request the specified artifact from maven, and install it.
+
+### Installing: bundle-lib
+Execute the following on the Karaf command-line:
+```
+bundle:install -s mvn:com.owt3.demo/bundle-lib/1.0.0-SNAPSHOT
+```
+
+![](img/deployBundle.png)
+
+### Installing: bundle-api
+Execute the following on the Karaf command-line:
+```
+bundle:install -s mvn:com.owt3.demo/bundle-api/1.0.0-SNAPSHOT
+```
+![](img/deployBundle2.png)
+
+### Installing: bundle-impl
+The following external dependencies need to be installed before our `bundle-impl`. This only needs to happen once in our Karaf installation. From then on, they are available for every other bundle that requires them:
+- pax-cdi (Karaf feature)
+- javax.inject (External library)
+
+The above is achieved as follows:
+```
  feature:install pax-cdi 
+ 
  install -s wrap:mvn:javax.inject/javax.inject/1
+ ```
 
+Now the OSGi bundle can be installed using:
+```
+bundle:install -s mvn:com.owt3.demo/bundle-impl/1.0.0-SNAPSHOT
+```
 
-Then install the Osgi bundle:
-
-	bundle:install -s mvn:com.owt3.demo/bundle-impl/1.0.0-SNAPSHOT
-
- `services + budlnle id ` command outputs the bundl's provided services
+By typing `services <BUNDLE_ID>` in the Karaf command-line we can see what our newly installed bundle provides:
 
 ![](img/deployServiceBunlde.png)
 
 
-
-we create a new maven project the "demo":
-
-
+### Installing: bundle-demo
+Execute the following on the Karaf command-line:
 ```
-package com.owt3.demo;
-
-import javax.inject.Inject;
-import javax.annotation.PostConstruct;
-import javax.inject.Singleton;
-import org.ops4j.pax.cdi.api.OsgiService;
-
-import com.owt3.api.GreetingService;
-
-
-@Singleton
-public class BundleDemo {
-
- @OsgiService
- @Inject
-private GreetingService greetingService;
-
-    @PostConstruct
-    public void init() {
-        String user = "auser"; 
-        System.out.println("Demo Bundle is calling GreetingService:");
-        System.out.println(" "+greetingService.sayHello(user));
-    }
-}
-```
-
- install the bundle :
 bundle:install -s mvn:com.owt3.demo/bundle-demo/1.0.0-SNAPSHOT
+```
 
-and Voila:
+And here is the output of the demo bundle execution:
 
 ![](img/runServices.png)
 
